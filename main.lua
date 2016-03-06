@@ -21,26 +21,86 @@ function love.load()
   
   -- { '', color='', bgcolor = '', passable= },
   tiles = {
-    { ' ', color='black', bgcolor='black', passable=false },
-    { '#', color='gray', bgcolor='black', passable=false },
-    { '.', color='yellow', bgcolor='black', passable=true }
+    { ' ', color='black', bgcolor='black', passable=false, id='earth' },
+    { '#', color='gray', bgcolor='black', passable=false, id='wall' },
+    { '.', color='yellow', bgcolor='black', passable=true, id='floor' }
   }
   
+  map = {}
   mapX = 40
   mapY = 16
+  maxRooms = 10
   
-  map = {}
+  -- first fill floor in
   for y = 1, mapY do
     map[y] = {}
     for x = 1, mapX do
-      table.insert(map[y], tiles[math.random(1, #tiles)])
+      table.insert(map[y], tiles[1])
     end
   end
   
-  -- dig the floor
+  -- for first room, until last room
+  -- repeat while 
+  
+  for i = 1, maxRooms do
+    local roomDone = false
+    while not roomDone do
+      -- pick a random position and size
+      local randomPos = {}
+      randomPos.x = math.random(2, mapX)
+      randomPos.y = math.random(2, mapY)
+      local roomSize = {}
+      roomSize.x = math.random(2,6)
+      roomSize.y = math.random(2,6)
+      local badRoom = false
+      
+      -- now loop through and see if any part of room is floor or would extend beyond map size
+      for y = randomPos.y, randomPos.y + roomSize.y do
+        for x = randomPos.x, randomPos.x + roomSize.x do
+          if y > mapY or x > mapX then
+            badRoom = true
+          elseif map[y][x].passable then
+            badRoom = true
+          end
+        end
+      end
+      
+      -- if badRoom is still false, then make the room
+      if not badRoom then
+        for y = randomPos.y, randomPos.y + roomSize.y do
+          for x = randomPos.x, randomPos.x + roomSize.x do
+            -- remove earth and insert floor
+            table.remove(map[y], x)
+            table.insert(map[y], x, tiles[3])
+            -- now for each adjacent tile that is not floor, remove and insert wall
+            for wy = -1, 1 do
+              for wx = -1, 1 do
+                if map[y + wy][x + wx].id ~= 'floor' then
+                  table.remove(map[y + wy], x + wx)
+                  table.insert(map[y + wy], x + wx, tiles[2])
+                end
+              end
+            end
+          end
+        end
+        roomDone = true
+      end
+      
+    end
+  end
+
+
+
+  -- fill map with unpassable tile
+  -- pick random position
+  -- see if a room can be made there
+  -- make the room
+  -- pick random position until adjacent to a floor tile
+  -- make corridor
+  
   
   player = { '@', color='fuchsia', bgcolor='black' }
-  local pos = findRandomFloor()
+  local pos = findRandomTile()
   player.x = pos.x
   player.y = pos.y
   
@@ -114,13 +174,20 @@ function movePlayer(x, y)
   end
 end
 
--- find a random passable position and return a table with the coordinates
-function findRandomFloor()
+-- generate a random tile and see if its id corresponds to arg id
+-- if no arg is passed then simply search for a passable tile
+function findRandomTile(id)
   local t = { x,y }
-  
-  repeat
-    t.x = math.random(mapX)
-    t.y = math.random(mapY)
-  until map[t.y][t.x].passable
+  if id == nil then
+    repeat
+      t.x = math.random(mapX)
+      t.y = math.random(mapY)
+    until map[t.y][t.x].passable
+  else
+    repeat
+      t.x = math.random(mapX)
+      t.y = math.random(mapY)
+    until map[t.y][t.x].id == id
+  end
   return t
 end
